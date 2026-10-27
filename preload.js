@@ -13,4 +13,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
   // Let renderer know it's running in Electron
   isElectron: true,
+
+  // Conversion APIs
+  convertImage: (data) => ipcRenderer.invoke('convert-image', data),
+  convertPdf: (data) => ipcRenderer.invoke('convert-pdf', data),
 });

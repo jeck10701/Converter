@@ -1,5 +1,5 @@
 /* =============================================
-   ConvertX – Application Logic
+   ConvertX – Application Logic (IPC & File Processing)
    ============================================= */
 
 // ============ Data ============
@@ -86,7 +86,7 @@ const FAQS = [
   },
   {
     q: 'Are my files uploaded anywhere?',
-    a: 'No. Every conversion runs right in your browser using WebAssembly and the File API. Your files never leave your device.'
+    a: 'No. Every conversion runs right on your computer. Your files never leave your device.'
   },
   {
     q: 'Which formats does ConvertX support?',
@@ -98,7 +98,7 @@ const FAQS = [
   },
   {
     q: 'Does it work offline?',
-    a: 'Once the page is loaded, most conversions work without internet. Some heavy engines may need a one-time download.'
+    a: 'Yes! ConvertX works 100% offline directly on your desktop PC.'
   },
   {
     q: 'How do I use the donut format picker?',
@@ -113,6 +113,9 @@ let results = [];
 let activeCat = 'all';
 let convertCount = 0;
 const MAX_CONVERT = 20;
+
+// Store generated blob URLs or file paths for download
+const convertedFilesStore = {};
 
 // ============ Init ============
 document.addEventListener('DOMContentLoaded', () => {
@@ -137,7 +140,7 @@ function toggleTheme() {
 function restoreTheme() {
   if (localStorage.getItem('cx-theme') === 'light') {
     document.body.classList.add('light-theme');
-    document.getElementById('themeIcon').innerHTML = '<path d="M12 7c-2.76 0-5 2.24-5 5s2.24 5 5 5 5-2.24 5-5-2.24-5-5-5zM2 13h2v-2H2v2zm18 0h2v-2h-2v2zM11 2v2h2V2h-2zm0 18v2h2v-2h-2zM5.99 4.58 4.57 6l1.42 1.42L7.4 6 5.99 4.58zm12.02 12.02-1.42 1.42 1.41 1.41 1.42-1.41-1.41-1.42zM5.99 19.44l1.42-1.42-1.41-1.42-1.42 1.42 1.41 1.42zM18.01 4.58l-1.41 1.42 1.41 1.42 1.42-1.42-1.42-1.42z"/>';
+    document.getElementById('themeIcon').innerHTML = '<path d="M12 7c-2.76 0-5 2.24-5 5s2.24 5 5 5 5-2.24 5-5-2.24-5-5-5zM2 13h2v-2H2v2zm18 0h2v-2h-2v2zM11 2v2h2V2h-2zm0 18v2h2v-2h-2zM5.99 4.58 4.57 6l1.42 1.42L7.4 6 5.99 4.58zm12.02 12.02-1.42 1.42 1.41 1.42 1.42-1.42-1.42-1.42zM5.99 19.44l1.42-1.42-1.41-1.42-1.42 1.42 1.41 1.42zM18.01 4.58l-1.41 1.42 1.41 1.42 1.42-1.42-1.42-1.42z"/>';
   }
 }
 
@@ -169,7 +172,15 @@ function handleDrop(e) {
   e.preventDefault();
   e.stopPropagation();
   document.getElementById('dropzone').classList.remove('drag-over');
-  const files = Array.from(e.dataTransfer.files);
+
+  const rawFiles = Array.from(e.dataTransfer.files);
+  const files = rawFiles.map(f => ({
+    name: f.name,
+    size: f.size,
+    path: f.path || (window.electronAPI && f.path) || '',
+    fileObj: f
+  }));
+
   if (files.length > 0) {
     addFilesToQueue(files);
     showDonut(files[0]);
@@ -177,7 +188,14 @@ function handleDrop(e) {
 }
 
 function handleFileSelect(fileList) {
-  const files = Array.from(fileList);
+  const rawFiles = Array.from(fileList);
+  const files = rawFiles.map(f => ({
+    name: f.name,
+    size: f.size,
+    path: f.path || (window.electronAPI && f.path) || '',
+    fileObj: f
+  }));
+
   if (files.length > 0) {
     addFilesToQueue(files);
     showFormatPicker();
@@ -245,12 +263,10 @@ function showDonut(file) {
 
   fn.textContent = file.name.length > 14 ? file.name.slice(0, 12) + '…' : file.name;
 
-  // Pick compatible formats
   let segments = [];
   if (cat && FORMATS[cat]) {
     segments = FORMATS[cat].formats.filter(f => f.toLowerCase() !== ext);
   }
-  // Supplement with other categories
   const allFmts = Object.entries(FORMATS).flatMap(([k, v]) => v.formats.map(f => ({ f, cat: k, color: v.color })));
   if (segments.length < 8) {
     const extras = allFmts.filter(x => !segments.includes(x.f) && x.f.toLowerCase() !== ext).slice(0, 8 - segments.length);
@@ -266,7 +282,7 @@ function buildDonutSVG(segments, sourceCat) {
   const n = segments.length;
   const cx = 160, cy = 160, r_outer = 150, r_inner = 65;
   const angleStep = (2 * Math.PI) / n;
-  const gap = 0.04; // radians gap between segments
+  const gap = 0.04;
 
   let svg = `<svg class="donut-svg" viewBox="0 0 320 320" xmlns="http://www.w3.org/2000/svg">`;
 
@@ -286,12 +302,9 @@ function buildDonutSVG(segments, sourceCat) {
 
     const d = `M ${x1o} ${y1o} A ${r_outer} ${r_outer} 0 ${largeArc} 1 ${x2o} ${y2o} L ${x1i} ${y1i} A ${r_inner} ${r_inner} 0 ${largeArc} 0 ${x2i} ${y2i} Z`;
 
-    // pick color
-    const fmtCat = Object.entries(FILE_EXT_MAP).find(([k,v]) => k === fmt.toLowerCase())?.[1]
-      || (sourceCat || 'other');
+    const fmtCat = Object.entries(FILE_EXT_MAP).find(([k,v]) => k === fmt.toLowerCase())?.[1] || (sourceCat || 'other');
     const color = FORMATS[fmtCat]?.color || '#7F77DD';
 
-    // label position
     const midAngle = (startAngle + endAngle) / 2;
     const r_mid = (r_outer + r_inner) / 2;
     const lx = cx + r_mid * Math.cos(midAngle);
@@ -301,9 +314,7 @@ function buildDonutSVG(segments, sourceCat) {
 
     svg += `
       <g class="donut-segment" onclick="convertSelected('${fmt}')" style="cursor:pointer">
-        <path class="donut-path" d="${d}" fill="${color}" opacity="0.82">
-          <animate attributeName="opacity" from="0" to="0.82" dur="0.3s" begin="${i * 0.04}s" fill="freeze"/>
-        </path>
+        <path class="donut-path" d="${d}" fill="${color}" opacity="0.82"></path>
         <path d="${d}" fill="transparent" stroke="none" class="donut-hover-hit"/>
         <text class="donut-label" x="${lx}" y="${ly}" font-size="11" font-weight="700" fill="white" text-anchor="middle" dominant-baseline="middle">${label}</text>
       </g>`;
@@ -377,8 +388,8 @@ function buildModalFormats(cat, query) {
   });
 }
 
-// ============ Conversion ============
-function convertSelected(toFmt) {
+// ============ Real Conversion Handler ============
+async function convertSelected(toFmt) {
   closeFormatModal();
   closeDonut();
 
@@ -395,18 +406,18 @@ function convertSelected(toFmt) {
   resultsSection.style.display = 'block';
   resultsSection.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 
-  filesToConvert.forEach((file, idx) => {
+  for (let idx = 0; idx < filesToConvert.length; idx++) {
+    const file = filesToConvert[idx];
     const resultId = `result-${Date.now()}-${idx}`;
     addResultItem(file, toFmt, resultId);
-    simulateConversion(file, toFmt, resultId);
-  });
+    
+    await processRealConversion(file, toFmt, resultId);
 
-  // Update history
-  filesToConvert.forEach(f => {
-    const ext = getExt(f.name);
+    const ext = getExt(file.name);
     history.unshift({ from: ext.toUpperCase(), to: toFmt, time: new Date().toLocaleTimeString() });
     convertCount++;
-  });
+  }
+
   renderHistory();
   updateStorageBar();
   document.getElementById('convertCount').textContent = `${convertCount} file${convertCount !== 1 ? 's' : ''} converted`;
@@ -416,7 +427,6 @@ function addResultItem(file, toFmt, id) {
   const list = document.getElementById('resultsList');
   const ext = getExt(file.name);
   const cat = FILE_EXT_MAP[ext] || 'other';
-  const toCat = Object.entries(FILE_EXT_MAP).find(([k,v]) => k === toFmt.toLowerCase())?.[1] || 'other';
   const circumference = 2 * Math.PI * 18;
 
   const li = document.createElement('li');
@@ -440,34 +450,122 @@ function addResultItem(file, toFmt, id) {
   list.prepend(li);
 }
 
-function simulateConversion(file, toFmt, id) {
-  const duration = 800 + Math.random() * 1400;
-  const start = Date.now();
-  const circumference = 2 * Math.PI * 18;
-
-  function update() {
-    const elapsed = Date.now() - start;
-    const progress = Math.min(elapsed / duration, 1);
-    const pct = Math.round(progress * 100);
-    const offset = circumference - (circumference * progress);
-
-    const fillEl = document.getElementById(`fill-${id}`);
-    const pctEl = document.getElementById(`pct-${id}`);
-    if (fillEl) fillEl.style.strokeDashoffset = offset;
-    if (pctEl) pctEl.textContent = pct + '%';
-
-    if (progress < 1) {
-      requestAnimationFrame(update);
-    } else {
-      onConversionDone(file, toFmt, id);
-    }
-  }
-  requestAnimationFrame(update);
-}
-
-function onConversionDone(file, toFmt, id) {
+async function processRealConversion(file, toFmt, id) {
   const ext = getExt(file.name);
   const newName = file.name.replace(/\.[^.]+$/, '') + '.' + toFmt.toLowerCase();
+  
+  updateProgress(id, 20);
+
+  // 1. PDF Conversion via Electron IPC (convertPdf)
+  if (ext === 'pdf' && window.electronAPI && window.electronAPI.convertPdf && file.path) {
+    const outputPath = file.path.replace(/\.[^/.]+$/, `_converted.${toFmt.toLowerCase()}`);
+    updateProgress(id, 60);
+
+    const res = await window.electronAPI.convertPdf({
+      inputPath: file.path,
+      outputPath: outputPath,
+      targetFormat: toFmt
+    });
+
+    updateProgress(id, 100);
+
+    if (res.success) {
+      convertedFilesStore[id] = { isPath: true, value: res.outputPath, fileName: newName };
+      onConversionDone(file, toFmt, id);
+      return;
+    }
+  }
+
+  // 2. Image Conversion via Sharp IPC (convertImage)
+  if (['jpg','jpeg','png','webp','avif','tiff','bmp','gif'].includes(ext) && window.electronAPI && window.electronAPI.convertImage && file.path) {
+    const outputPath = file.path.replace(/\.[^/.]+$/, `_converted.${toFmt.toLowerCase()}`);
+    updateProgress(id, 60);
+
+    const res = await window.electronAPI.convertImage({
+      inputPath: file.path,
+      outputPath: outputPath,
+      targetFormat: toFmt
+    });
+
+    updateProgress(id, 100);
+
+    if (res.success) {
+      convertedFilesStore[id] = { isPath: true, value: res.outputPath, fileName: newName };
+      onConversionDone(file, toFmt, id);
+      return;
+    }
+  }
+
+  // 3. HTML Canvas Fallback for Renderer Process
+  const isImageSource = ['jpg','jpeg','png','webp','bmp'].includes(ext);
+  const isImageTarget = ['jpg','jpeg','png','webp','bmp'].includes(toFmt.toLowerCase());
+
+  if (isImageSource && isImageTarget && file.fileObj) {
+    try {
+      updateProgress(id, 50);
+      const blobUrl = await convertImageViaCanvas(file.fileObj, toFmt.toLowerCase());
+      updateProgress(id, 100);
+      convertedFilesStore[id] = { isPath: false, value: blobUrl, fileName: newName };
+      onConversionDone(file, toFmt, id);
+      return;
+    } catch (e) {
+      console.error('Canvas conversion error:', e);
+    }
+  }
+
+  // 4. Fallback if format is not supported locally
+  updateProgress(id, 100);
+  onConversionDone(file, toFmt, id, false);
+}
+
+function updateProgress(id, pct) {
+  const circumference = 2 * Math.PI * 18;
+  const offset = circumference - (circumference * (pct / 100));
+  const fillEl = document.getElementById(`fill-${id}`);
+  const pctEl = document.getElementById(`pct-${id}`);
+  if (fillEl) fillEl.style.strokeDashoffset = offset;
+  if (pctEl) pctEl.textContent = pct + '%';
+}
+
+function convertImageViaCanvas(file, format) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    const reader = new FileReader();
+
+    reader.onload = (e) => {
+      img.src = e.target.result;
+    };
+
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      canvas.width = img.width;
+      canvas.height = img.height;
+      const ctx = canvas.getContext('2d');
+      
+      if (format === 'jpg' || format === 'jpeg') {
+        ctx.fillStyle = '#FFFFFF';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+      }
+      ctx.drawImage(img, 0, 0);
+
+      const mimeType = (format === 'png') ? 'image/png' : ((format === 'webp') ? 'image/webp' : 'image/jpeg');
+      canvas.toBlob((blob) => {
+        if (blob) {
+          resolve(URL.createObjectURL(blob));
+        } else {
+          reject(new Error('Canvas blob generation failed'));
+        }
+      }, mimeType, 0.92);
+    };
+
+    img.onerror = reject;
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+function onConversionDone(file, toFmt, id, success = true) {
+  const ext = getExt(file.name);
   const cat = FILE_EXT_MAP[ext] || 'other';
 
   const progEl = document.getElementById(`prog-${id}`);
@@ -481,7 +579,7 @@ function onConversionDone(file, toFmt, id) {
   }
   const actEl = document.getElementById(`actions-${id}`);
   if (actEl) {
-    actEl.innerHTML = `<button class="result-btn download" onclick="downloadResult('${newName}', '${toFmt}')">
+    actEl.innerHTML = `<button class="result-btn download" onclick="downloadResult('${id}')">
       <svg viewBox="0 0 24 24"><path d="M5,20H19V18H5M19,9H15V3H9V9H5L12,16L19,9Z"/></svg>
       Download
     </button>`;
@@ -490,18 +588,27 @@ function onConversionDone(file, toFmt, id) {
   toast(`✓ ${file.name} → ${toFmt}`, 'success');
 }
 
-function downloadResult(fileName, fmt) {
-  // In a real app this would trigger actual download
-  // Here we simulate it with a dummy text blob
-  const dummy = `ConvertX Demo: This is a simulated ${fmt} file.\nFilename: ${fileName}\nGenerated by ConvertX.`;
-  const blob = new Blob([dummy], { type: 'text/plain' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = fileName;
-  a.click();
-  URL.revokeObjectURL(url);
-  toast(`Downloading ${fileName}`, 'success');
+function downloadResult(id) {
+  const fileData = convertedFilesStore[id];
+  
+  if (!fileData) {
+    toast('File download not available', 'error');
+    return;
+  }
+
+  if (fileData.isPath && fileData.value) {
+    toast(`File saved at: ${fileData.value}`, 'success');
+  } else if (fileData.value) {
+    const a = document.createElement('a');
+    a.href = fileData.value;
+    a.download = fileData.fileName;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    toast(`Downloading ${fileData.fileName}`, 'success');
+  } else {
+    toast('File download not available', 'error');
+  }
 }
 
 function clearResults() {

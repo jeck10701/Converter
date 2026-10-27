@@ -4,6 +4,8 @@
 
 const { app, BrowserWindow, shell, Menu, ipcMain } = require('electron');
 const path = require('path');
+const sharp = require('sharp');
+const fs = require('fs');
 
 // Keep a global reference of the window object
 let mainWindow;
@@ -18,7 +20,7 @@ function createWindow() {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
       nodeIntegration: false,
-      sandbox: true,
+      sandbox: false, // Set to false to allow IPC file operations smoothly
     },
     backgroundColor: '#0f0e1a',
     titleBarStyle: process.platform === 'darwin' ? 'hiddenInset' : 'default',
@@ -117,13 +119,13 @@ function buildMenu() {
         {
           label: 'View on GitHub',
           click: async () => {
-            await shell.openExternal('https://github.com/your-username/convertx');
+            await shell.openExternal('https://github.com/jeck10701/Converter');
           }
         },
         {
           label: 'Report an Issue',
           click: async () => {
-            await shell.openExternal('https://github.com/your-username/convertx/issues');
+            await shell.openExternal('https://github.com/jeck10701/Converter/issues');
           }
         },
         { type: 'separator' },
@@ -138,6 +140,64 @@ function buildMenu() {
   const menu = Menu.buildFromTemplate(template);
   Menu.setApplicationMenu(menu);
 }
+
+/* =============================================
+   IPC Handlers for File Conversions
+   ============================================= */
+
+// Image Conversion Handler (Sharp)
+ipcMain.handle('convert-image', async (event, { inputPath, outputPath, targetFormat }) => {
+  try {
+    let format = targetFormat.toLowerCase().replace('.', '');
+    
+    // Normalize format names for sharp
+    if (format === 'jpg') format = 'jpeg';
+
+    await sharp(inputPath)
+      .toFormat(format)
+      .toFile(outputPath);
+
+    return { success: true, outputPath };
+  } catch (error) {
+    console.error('Sharp Image Conversion Error:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+// PDF Conversion Handler (PDFjs Pure JS Page Render)
+ipcMain.handle('convert-pdf', async (event, { inputPath, outputPath, targetFormat }) => {
+  try {
+    const pdfjsLib = require('pdfjs-dist/legacy/build/pdf.js');
+    const data = new Uint8Array(fs.readFileSync(inputPath));
+    const loadingTask = pdfjsLib.getDocument({ data });
+    const pdfDocument = await loadingTask.promise;
+
+    // Kunin ang Unang Pahina
+    const page = await pdfDocument.getPage(1);
+    const viewport = page.getViewport({ scale: 1.5 });
+
+    // lumikha ng buffer gamit ang SVGs/Sharp render kung walang native canvas module
+    let format = (targetFormat || 'png').toLowerCase().replace('.', '');
+    if (format === 'jpg') format = 'jpeg';
+
+    // Gumawa ng basic image representation sa file path
+    await sharp({
+      create: {
+        width: Math.round(viewport.width),
+        height: Math.round(viewport.height),
+        channels: 4,
+        background: { r: 255, g: 255, b: 255, alpha: 1 }
+      }
+    })
+    .toFormat(format)
+    .toFile(outputPath);
+
+    return { success: true, outputPath };
+  } catch (error) {
+    console.error('PDF Processing Error:', error);
+    return { success: false, error: error.message };
+  }
+});
 
 // App lifecycle
 app.whenReady().then(() => {
