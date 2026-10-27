@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # ConvertX 🔄
 
 > **Free & Open Source Desktop File Converter** — Convert 255+ formats instantly, right on your PC. No upload, no account, no limits.
@@ -101,3 +102,6 @@ Pull requests are welcome! For major changes, please open an issue first.
 3. Commit your changes (`git commit -m 'Add amazing feature'`)
 4. Push to the branch (`git push origin feature/amazing-feature`)
 5. Open a Pull Request
+=======
+# Converter
+>>>>>>> 3e8e03c11fbfedaa721a5c512a649f1a1bc35984
