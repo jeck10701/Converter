@@ -17,6 +17,7 @@
     "appId": "com.convertx.app",
     "productName": "ConvertX",
     "copyright": "Copyright © 2026 ConvertX",
+    "forceCodeSigning": false,
     "directories": {
       "output": "dist"
     },
@@ -29,6 +30,8 @@
       "assets/**/*"
     ],
     "win": {
+      "icon": null,
+      "verifyUpdateCodeSignature": false,
       "target": [
         {
           "target": "nsis",
@@ -38,30 +41,13 @@
           "target": "portable",
           "arch": ["x64"]
         }
-      ],
-      "icon": "assets/icon.ico"
-    },
-    "mac": {
-      "target": "dmg",
-      "icon": "assets/icon.icns",
-      "category": "public.app-category.productivity"
-    },
-    "linux": {
-      "target": "AppImage",
-      "icon": "assets/icon.png",
-      "category": "Utility"
+      ]
     },
     "nsis": {
       "oneClick": false,
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
-      "createStartMenuShortcut": true,
-      "installerIcon": "assets/icon.ico",
-      "uninstallerIcon": "assets/icon.ico"
-    },
-    "publish": {
-      "provider": "github",
-      "releaseType": "release"
+      "createStartMenuShortcut": true
     }
   },
   "devDependencies": {
