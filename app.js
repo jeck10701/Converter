@@ -15,42 +15,6 @@ const FORMATS = {
     color: '#4a84d4',
     icon: `<path fill-rule="evenodd" d="M6 2h8l6 6v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2zm7 1.5V9h5.5zM7 12h10v1.8H7zm0 3.4h10v1.8H7zm0 3.4h6.5v1.8H7z"/>`,
     formats: ['PDF','DOCX','DOC','ODT','RTF','TXT','XLSX','XLS','CSV','PPTX','PPT','ODP','HTML','MHTML','Markdown','EPUB']
-  },
-  video: {
-    label: 'Video',
-    color: '#E06C75',
-    icon: `<path d="M17 10.5V7a1 1 0 0 0-1-1H4a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-3.5l4 4v-11l-4 4z"/>`,
-    formats: ['MP4','MOV','MKV','WEBM','AVI','M4V','WMV','FLV','MPEG','TS','3GP','GIF']
-  },
-  audio: {
-    label: 'Audio',
-    color: '#1D9E75',
-    icon: `<path d="M12 3v10.55A4 4 0 1 0 14 17V7h4V3h-6z"/>`,
-    formats: ['MP3','M4A','AAC','WAV','FLAC','OGG','OPUS','WMA','AIFF','AC3']
-  },
-  ebook: {
-    label: 'E-books',
-    color: '#E5C07B',
-    icon: `<path d="M19 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h13a1 1 0 0 0 1-1V3a1 1 0 0 0-1-1zM6 4h12v12H6zM6 20v-2h12v2z"/>`,
-    formats: ['EPUB','MOBI','AZW','AZW3','FB2','CBZ','CBR','PDF']
-  },
-  archive: {
-    label: 'Archives',
-    color: '#C678DD',
-    icon: `<path d="M20 6h-2.18c.07-.31.18-.62.18-1a3 3 0 0 0-3-3c-1 0-1.87.5-2.44 1.25L12 4 11.44 3.25C10.87 2.5 10 2 9 2a3 3 0 0 0-3 3c0 .38.11.69.18 1H4a2 2 0 0 0-2 2v11a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2z"/>`,
-    formats: ['ZIP','7Z','TAR','GZ','BZ2','RAR','TAR.GZ','TAR.XZ']
-  },
-  vector: {
-    label: 'Vector',
-    color: '#56B6C2',
-    icon: `<path fill-rule="evenodd" d="M3 15h6v6H3zM15 3h6v6h-6zM5 15c0-5.5 4.5-10 10-10v2c-4.4 0-8 3.6-8 8z"/>`,
-    formats: ['SVG','SVGZ','EMF','WMF','AI','EPS','PS','CDR','DXF']
-  },
-  '3d': {
-    label: '3D Models',
-    color: '#7F77DD',
-    icon: `<path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>`,
-    formats: ['GLB','glTF','STL','OBJ','3MF','PLY','FBX']
   }
 };
 
@@ -90,7 +54,7 @@ const FAQS = [
   },
   {
     q: 'Which formats does ConvertX support?',
-    a: 'ConvertX supports 255+ formats across 8 categories: images, documents, video, audio, e-books, archives, vector graphics, and 3D models.'
+    a: 'ConvertX supports 100+ formats across 2 categories: images and documents.'
   },
   {
     q: 'Can I convert multiple files at once?',
@@ -452,58 +416,118 @@ function addResultItem(file, toFmt, id) {
 
 async function processRealConversion(file, toFmt, id) {
   const ext = getExt(file.name);
-  const newName = file.name.replace(/\.[^.]+$/, '') + '.' + toFmt.toLowerCase();
-  
-  updateProgress(id, 20);
+  const baseName = file.name.replace(/\.[^.]+$/, '');
+  const newName  = baseName + '.' + toFmt.toLowerCase();
+  const api      = window.electronAPI;
 
-  // 1. PDF Conversion via Electron IPC (convertPdf)
-  if (ext === 'pdf' && window.electronAPI && window.electronAPI.convertPdf && file.path) {
-    const outputPath = file.path.replace(/\.[^/.]+$/, `_converted.${toFmt.toLowerCase()}`);
-    updateProgress(id, 60);
+  updateProgress(id, 15);
 
-    const res = await window.electronAPI.convertPdf({
-      inputPath: file.path,
-      outputPath: outputPath,
-      targetFormat: toFmt
+  // ── Helper: build output path ──────────────────────────────────────────────
+  function buildOutputPath(suffix) {
+    if (file.path) {
+      return file.path.replace(/\.[^/.]+$/, `_converted.${suffix}`);
+    }
+    // fallback to temp dir when file.path isn't available
+    if (api && api.tmpDir && api.joinPath) {
+      return api.joinPath(api.tmpDir, baseName + '_converted.' + suffix);
+    }
+    return null;
+  }
+
+  // ── Helper: read File object as base64 ────────────────────────────────────
+  function readAsBase64(fileObj) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = e => resolve(e.target.result.split(',')[1]); // strip data:...;base64,
+      reader.onerror = reject;
+      reader.readAsDataURL(fileObj);
     });
+  }
 
+  const targetFmtLower = toFmt.toLowerCase();
+  const docExts  = ['pdf','docx','doc','odt','rtf','txt','xlsx','xls','csv','pptx','ppt','odp','html','mhtml','md','epub'];
+  const imgExts  = ['jpg','jpeg','png','webp','avif','tiff','bmp','gif','ico','tga'];
+  const imgFmts  = ['jpg','jpeg','png','webp','avif','tiff','bmp','gif'];
+
+  // ══════════════════════════════════════════════════════════════════════════
+  // 1. PDF → Image  (pdfjs-dist + sharp in main process)
+  // ══════════════════════════════════════════════════════════════════════════
+  if (ext === 'pdf' && imgFmts.includes(targetFmtLower) && api && api.convertPdf && file.path) {
+    const outputPath = buildOutputPath(targetFmtLower);
+    updateProgress(id, 40);
+    const res = await api.convertPdf({ inputPath: file.path, outputPath, targetFormat: toFmt });
     updateProgress(id, 100);
-
     if (res.success) {
       convertedFilesStore[id] = { isPath: true, value: res.outputPath, fileName: newName };
       onConversionDone(file, toFmt, id);
       return;
     }
+    // show specific error but continue to fallback
+    console.warn('PDF→Image failed:', res.error);
+    toast(`PDF conversion: ${res.error}`, 'error');
+    onConversionDone(file, toFmt, id, false);
+    return;
   }
 
-  // 2. Image Conversion via Sharp IPC (convertImage)
-  if (['jpg','jpeg','png','webp','avif','tiff','bmp','gif'].includes(ext) && window.electronAPI && window.electronAPI.convertImage && file.path) {
-    const outputPath = file.path.replace(/\.[^/.]+$/, `_converted.${toFmt.toLowerCase()}`);
-    updateProgress(id, 60);
-
-    const res = await window.electronAPI.convertImage({
-      inputPath: file.path,
-      outputPath: outputPath,
-      targetFormat: toFmt
-    });
-
+  // ══════════════════════════════════════════════════════════════════════════
+  // 2. Doc → PDF  (docx-pdf via IPC)
+  // ══════════════════════════════════════════════════════════════════════════
+  const docToConvertExts = ['docx','doc','odt','rtf'];
+  if (docToConvertExts.includes(ext) && targetFmtLower === 'pdf' && api && api.convertDoc && file.path) {
+    const outputPath = buildOutputPath('pdf');
+    updateProgress(id, 40);
+    const res = await api.convertDoc({ inputPath: file.path, outputPath, targetFormat: 'pdf' });
     updateProgress(id, 100);
-
     if (res.success) {
       convertedFilesStore[id] = { isPath: true, value: res.outputPath, fileName: newName };
       onConversionDone(file, toFmt, id);
       return;
     }
+    toast(`Doc→PDF failed: ${res.error}`, 'error');
+    onConversionDone(file, toFmt, id, false);
+    return;
   }
 
-  // 3. HTML Canvas Fallback for Renderer Process
-  const isImageSource = ['jpg','jpeg','png','webp','bmp'].includes(ext);
-  const isImageTarget = ['jpg','jpeg','png','webp','bmp'].includes(toFmt.toLowerCase());
+  // ══════════════════════════════════════════════════════════════════════════
+  // 3. Image → Image  (sharp via IPC, supports both file.path and buffer)
+  // ══════════════════════════════════════════════════════════════════════════
+  if (imgExts.includes(ext) && imgFmts.includes(targetFmtLower) && api && api.convertImage) {
+    const outputPath = buildOutputPath(targetFmtLower);
 
-  if (isImageSource && isImageTarget && file.fileObj) {
+    if (outputPath) {
+      updateProgress(id, 40);
+
+      let payload;
+      if (file.path) {
+        // Direct file path — fast path
+        payload = { inputPath: file.path, outputPath, targetFormat: toFmt };
+      } else if (file.fileObj) {
+        // No file.path (e.g., browser file picker) — send buffer
+        const b64 = await readAsBase64(file.fileObj);
+        payload = { outputBuffer: b64, outputPath, targetFormat: toFmt };
+      }
+
+      if (payload) {
+        const res = await api.convertImage(payload);
+        updateProgress(id, 100);
+        if (res.success) {
+          convertedFilesStore[id] = { isPath: true, value: res.outputPath, fileName: newName };
+          onConversionDone(file, toFmt, id);
+          return;
+        }
+        console.warn('Sharp failed, trying canvas fallback:', res.error);
+      }
+    }
+  }
+
+  // ══════════════════════════════════════════════════════════════════════════
+  // 4. Image → Image Canvas Fallback (browser-side, no Electron needed)
+  // ══════════════════════════════════════════════════════════════════════════
+  const canvasSrcFmts = ['jpg','jpeg','png','webp','bmp','gif'];
+  if (canvasSrcFmts.includes(ext) && imgFmts.includes(targetFmtLower) && file.fileObj) {
     try {
       updateProgress(id, 50);
-      const blobUrl = await convertImageViaCanvas(file.fileObj, toFmt.toLowerCase());
+      const blobUrl = await convertImageViaCanvas(file.fileObj, targetFmtLower);
       updateProgress(id, 100);
       convertedFilesStore[id] = { isPath: false, value: blobUrl, fileName: newName };
       onConversionDone(file, toFmt, id);
@@ -513,8 +537,11 @@ async function processRealConversion(file, toFmt, id) {
     }
   }
 
-  // 4. Fallback if format is not supported locally
+  // ══════════════════════════════════════════════════════════════════════════
+  // 5. Unsupported — give clear feedback
+  // ══════════════════════════════════════════════════════════════════════════
   updateProgress(id, 100);
+  toast(`Cannot convert ${ext.toUpperCase()} → ${toFmt}: unsupported or missing file path.`, 'error');
   onConversionDone(file, toFmt, id, false);
 }
 

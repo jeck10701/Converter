@@ -6,6 +6,8 @@ const { app, BrowserWindow, shell, Menu, ipcMain } = require('electron');
 const path = require('path');
 const sharp = require('sharp');
 const fs = require('fs');
+const os = require('os');
+const docxPdf = require('docx-pdf');
 
 // Keep a global reference of the window object
 let mainWindow;
@@ -145,18 +147,17 @@ function buildMenu() {
    IPC Handlers for File Conversions
    ============================================= */
 
-// Image Conversion Handler (Sharp Native Engine)
-ipcMain.handle('convert-image', async (event, { inputPath, outputPath, targetFormat }) => {
+// ─── Image Conversion Handler (Sharp) ────────────────────────────────────────
+ipcMain.handle('convert-image', async (event, { inputPath, outputBuffer, outputPath, targetFormat }) => {
   try {
     let format = targetFormat.toLowerCase().replace('.', '');
-    
-    // Normalize format names for sharp
     if (format === 'jpg') format = 'jpeg';
+    if (format === 'tif') format = 'tiff';
 
-    await sharp(inputPath)
-      .toFormat(format)
-      .toFile(outputPath);
+    // Accept either a file path or a base64 buffer sent from renderer
+    const src = inputPath ? sharp(inputPath) : sharp(Buffer.from(outputBuffer, 'base64'));
 
+    await src.toFormat(format).toFile(outputPath);
     return { success: true, outputPath };
   } catch (error) {
     console.error('Sharp Image Conversion Error:', error);
@@ -164,15 +165,69 @@ ipcMain.handle('convert-image', async (event, { inputPath, outputPath, targetFor
   }
 });
 
-// PDF Conversion Handler Placeholder
+// ─── PDF → Image Conversion Handler (pdfjs-dist + sharp) ────────────────────
 ipcMain.handle('convert-pdf', async (event, { inputPath, outputPath, targetFormat }) => {
   try {
-    return { 
-      success: false, 
-      error: 'PDF and Document rendering require additional desktop dependencies in v1.0.0.' 
-    };
+    const pdfjsLib = require('pdfjs-dist/legacy/build/pdf.js');
+    const { createCanvas } = require('canvas');
+
+    const data = new Uint8Array(fs.readFileSync(inputPath));
+    const loadingTask = pdfjsLib.getDocument({ data });
+    const pdfDoc = await loadingTask.promise;
+
+    const page = await pdfDoc.getPage(1); // render first page
+    const viewport = page.getViewport({ scale: 2.0 }); // 2x for quality
+
+    const canvas = createCanvas(viewport.width, viewport.height);
+    const ctx = canvas.getContext('2d');
+
+    await page.render({ canvasContext: ctx, viewport }).promise;
+
+    // Save canvas as PNG first, then use sharp to convert to target format
+    const pngBuffer = canvas.toBuffer('image/png');
+    let fmt = targetFormat.toLowerCase().replace('.', '');
+    if (fmt === 'jpg') fmt = 'jpeg';
+
+    await sharp(pngBuffer).toFormat(fmt).toFile(outputPath);
+    return { success: true, outputPath };
   } catch (error) {
-    console.error('PDF Processing Error:', error);
+    console.error('PDF Conversion Error:', error.message);
+    // Fallback: try without canvas (pdfjs NodeCanvas workaround)
+    try {
+      // If canvas module not available, return a meaningful error
+      return { success: false, error: `PDF conversion failed: ${error.message}. Try installing the 'canvas' npm package.` };
+    } catch (e2) {
+      return { success: false, error: error.message };
+    }
+  }
+});
+
+// ─── Document Conversion Handler (DOCX/DOC → PDF) ────────────────────────────
+ipcMain.handle('convert-doc', async (event, { inputPath, outputPath, targetFormat }) => {
+  try {
+    const fmt = targetFormat.toLowerCase();
+
+    if (fmt === 'pdf') {
+      // Use docx-pdf for DOCX/DOC → PDF
+      await new Promise((resolve, reject) => {
+        docxPdf(inputPath, outputPath, (err, result) => {
+          if (err) reject(err);
+          else resolve(result);
+        });
+      });
+      return { success: true, outputPath };
+    }
+
+    // TXT → any text format (simple copy/rename)
+    const ext = path.extname(inputPath).toLowerCase();
+    if (ext === '.txt' && fmt === 'txt') {
+      fs.copyFileSync(inputPath, outputPath);
+      return { success: true, outputPath };
+    }
+
+    return { success: false, error: `Document conversion from ${ext} to ${fmt} is not yet supported.` };
+  } catch (error) {
+    console.error('Doc Conversion Error:', error);
     return { success: false, error: error.message };
   }
 });
