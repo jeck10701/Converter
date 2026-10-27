@@ -1,0 +1,363 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ConvertX – Free File Converter | Convert Files Instantly</title>
+  <meta name="description" content="ConvertX is a free, beautiful file converter for images, documents, video, audio, archives and more. Drag, drop, and convert.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- App Shell -->
+  <div class="app" id="app">
+
+    <!-- Sidebar -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-brand">
+        <div class="logo">
+          <svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="24" cy="24" r="22" stroke="url(#lg1)" stroke-width="4"/>
+            <path d="M24 8 L36 24 L24 40 L12 24 Z" fill="url(#lg2)"/>
+            <circle cx="24" cy="24" r="8" fill="#16151F"/>
+            <defs>
+              <linearGradient id="lg1" x1="2" y1="2" x2="46" y2="46" gradientUnits="userSpaceOnUse">
+                <stop stop-color="#7F77DD"/>
+                <stop offset="0.5" stop-color="#1D9E75"/>
+                <stop offset="1" stop-color="#7F77DD"/>
+              </linearGradient>
+              <linearGradient id="lg2" x1="12" y1="8" x2="36" y2="40" gradientUnits="userSpaceOnUse">
+                <stop stop-color="#7F77DD"/>
+                <stop offset="1" stop-color="#1D9E75"/>
+              </linearGradient>
+            </defs>
+          </svg>
+        </div>
+        <span class="brand-name">ConvertX</span>
+      </div>
+
+      <nav class="sidebar-nav">
+        <p class="nav-label">Categories</p>
+        <button class="nav-item active" data-cat="all" onclick="filterCat('all')">
+          <svg viewBox="0 0 24 24"><path d="M3 3h8v8H3zm10 0h8v8h-8zM3 13h8v8H3zm10 5h2v-2h2v2h2v2h-2v2h-2v-2h-2v-2z"/></svg>
+          <span>All Formats</span>
+        </button>
+        <button class="nav-item" data-cat="image" onclick="filterCat('image')">
+          <svg viewBox="0 0 24 24"><path fill-rule="evenodd" d="M5 3h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2zM5 5v11l4-4.5 3 3.5 3.5-4.5L19 15.5V5zm4 1.5a2 2 0 1 1 0 4 2 2 0 0 1 0-4z"/></svg>
+          <span>Images</span>
+          <span class="nav-badge">38</span>
+        </button>
+        <button class="nav-item" data-cat="doc" onclick="filterCat('doc')">
+          <svg viewBox="0 0 24 24"><path fill-rule="evenodd" d="M6 2h8l6 6v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2zm7 1.5V9h5.5zM7 12h10v1.8H7zm0 3.4h10v1.8H7zm0 3.4h6.5v1.8H7z"/></svg>
+          <span>Documents</span>
+          <span class="nav-badge">24</span>
+        </button>
+        <button class="nav-item" data-cat="video" onclick="filterCat('video')">
+          <svg viewBox="0 0 24 24"><path d="M17 10.5V7a1 1 0 0 0-1-1H4a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-3.5l4 4v-11l-4 4z"/></svg>
+          <span>Video</span>
+          <span class="nav-badge">15</span>
+        </button>
+        <button class="nav-item" data-cat="audio" onclick="filterCat('audio')">
+          <svg viewBox="0 0 24 24"><path d="M12 3v10.55A4 4 0 1 0 14 17V7h4V3h-6z"/></svg>
+          <span>Audio</span>
+          <span class="nav-badge">12</span>
+        </button>
+        <button class="nav-item" data-cat="ebook" onclick="filterCat('ebook')">
+          <svg viewBox="0 0 24 24"><path d="M19 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h13a1 1 0 0 0 1-1V3a1 1 0 0 0-1-1zM6 4h12v12H6zM6 20v-2h12v2z"/></svg>
+          <span>E-books</span>
+          <span class="nav-badge">8</span>
+        </button>
+        <button class="nav-item" data-cat="archive" onclick="filterCat('archive')">
+          <svg viewBox="0 0 24 24"><path d="M20 6h-2.18c.07-.31.18-.62.18-1a3 3 0 0 0-3-3c-1 0-1.87.5-2.44 1.25L12 4 11.44 3.25C10.87 2.5 10 2 9 2a3 3 0 0 0-3 3c0 .38.11.69.18 1H4a2 2 0 0 0-2 2v11a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2z"/></svg>
+          <span>Archives</span>
+          <span class="nav-badge">10</span>
+        </button>
+        <button class="nav-item" data-cat="vector" onclick="filterCat('vector')">
+          <svg viewBox="0 0 24 24"><path fill-rule="evenodd" d="M3 15h6v6H3zM15 3h6v6h-6zM5 15c0-5.5 4.5-10 10-10v2c-4.4 0-8 3.6-8 8z"/></svg>
+          <span>Vector</span>
+          <span class="nav-badge">12</span>
+        </button>
+        <button class="nav-item" data-cat="3d" onclick="filterCat('3d')">
+          <svg viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+          <span>3D Models</span>
+          <span class="nav-badge">7</span>
+        </button>
+      </nav>
+
+      <div class="sidebar-bottom">
+        <div class="storage-card">
+          <div class="storage-info">
+            <span>Session usage</span>
+            <span class="storage-count" id="convertCount">0 files converted</span>
+          </div>
+          <div class="storage-bar"><div class="storage-fill" id="storageFill" style="width:0%"></div></div>
+        </div>
+        <a href="https://github.com" class="sidebar-link">
+          <svg viewBox="0 0 24 24"><path d="M12,2A10,10 0 0,0 2,12C2,16.42 4.87,20.17 8.84,21.5C9.34,21.58 9.5,21.27 9.5,21C9.5,20.77 9.5,20.14 9.5,19.31C6.73,19.91 6.14,17.97 6.14,17.97C5.68,16.81 5.03,16.5 5.03,16.5C4.12,15.88 5.1,15.9 5.1,15.9C6.1,15.97 6.63,16.93 6.63,16.93C7.5,18.45 8.97,18 9.54,17.76C9.63,17.11 9.89,16.67 10.17,16.42C7.95,16.17 5.62,15.31 5.62,11.5C5.62,10.39 6,9.5 6.65,8.79C6.55,8.54 6.2,7.5 6.75,6.15C6.75,6.15 7.59,5.88 9.5,7.17C10.29,6.95 11.15,6.84 12,6.84C12.85,6.84 13.71,6.95 14.5,7.17C16.41,5.88 17.25,6.15 17.25,6.15C17.8,7.5 17.45,8.54 17.35,8.79C18,9.5 18.38,10.39 18.38,11.5C18.38,15.32 16.04,16.16 13.81,16.41C14.17,16.72 14.5,17.33 14.5,18.26C14.5,19.6 14.5,20.68 14.5,21.09C14.5,21.36 14.66,21.67 15.17,21.59C19.14,20.16 22,16.42 22,12A10,10 0 0,0 12,2Z"/></svg>
+          Open Source
+        </a>
+      </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main" id="main">
+
+      <!-- Topbar -->
+      <header class="topbar">
+        <button class="topbar-menu" id="menuBtn" onclick="toggleSidebar()">
+          <svg viewBox="0 0 24 24"><path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/></svg>
+        </button>
+        <div class="topbar-search">
+          <svg viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27A6.47 6.47 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
+          <input type="text" placeholder="Search formats… (e.g. JPG, MP4, PDF)" id="searchInput" oninput="searchFormats(this.value)">
+        </div>
+        <div class="topbar-actions">
+          <button class="topbar-btn" id="historyBtn" onclick="toggleHistory()">
+            <svg viewBox="0 0 24 24"><path d="M13 3a9 9 0 0 0-9 9H1l3.89 3.89.07.14L9 12H6a7 7 0 0 1 7-7 7 7 0 0 1 7 7 7 7 0 0 1-7 7c-1.93 0-3.68-.79-4.94-2.06l-1.42 1.42A8.954 8.954 0 0 0 13 21a9 9 0 0 0 9-9 9 9 0 0 0-9-9zm-1 5v5l4.28 2.54.72-1.21-3.5-2.08V8H12z"/></svg>
+            <span>History</span>
+          </button>
+          <button class="topbar-btn theme-btn" id="themeBtn" onclick="toggleTheme()">
+            <svg viewBox="0 0 24 24" id="themeIcon"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9z"/></svg>
+          </button>
+        </div>
+      </header>
+
+      <!-- Hero Section -->
+      <section class="hero-section" id="heroSection">
+        <div class="hero-text">
+          <div class="hero-badge">✨ 255+ formats · No upload · 100% free</div>
+          <h1 class="hero-title">Convert <span class="gradient-text">any file</span>,<br>in seconds.</h1>
+          <p class="hero-sub">Drag your files below, pick a format, and convert — right in your browser. No upload, no account, no limits.</p>
+        </div>
+
+        <!-- Drop Zone -->
+        <div class="dropzone" id="dropzone"
+          ondragover="handleDragOver(event)"
+          ondragleave="handleDragLeave(event)"
+          ondrop="handleDrop(event)">
+          <div class="dropzone-inner">
+            <div class="dropzone-icon" id="dropzoneIcon">
+              <svg viewBox="0 0 24 24"><path d="M19.35 10.04A7.49 7.49 0 0 0 12 4C9.11 4 6.6 5.64 5.35 8.04A5.994 5.994 0 0 0 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM14 13v4h-4v-4H7l5-5 5 5h-3z"/></svg>
+            </div>
+            <p class="dropzone-title">Drop your files here</p>
+            <p class="dropzone-sub">or <label for="fileInput" class="dropzone-link">browse files</label></p>
+            <p class="dropzone-hint">Supports 255+ formats · Multiple files OK</p>
+            <input type="file" id="fileInput" multiple hidden onchange="handleFileSelect(this.files)">
+          </div>
+
+          <!-- Donut Overlay -->
+          <div class="donut-overlay" id="donutOverlay">
+            <div class="donut-container" id="donutContainer">
+              <div class="donut-ring" id="donutRing">
+                <!-- segments injected by JS -->
+              </div>
+              <div class="donut-center" id="donutCenter">
+                <div class="donut-file-name" id="donutFileName">file.jpg</div>
+                <div class="donut-hint">Drop on a format</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Queued Files -->
+        <div class="file-queue" id="fileQueue" style="display:none">
+          <div class="queue-header">
+            <span class="queue-title" id="queueTitle">0 files ready</span>
+            <div class="queue-actions">
+              <button class="queue-btn" onclick="clearQueue()">Clear all</button>
+              <button class="queue-btn primary" onclick="showFormatPicker()">Choose format →</button>
+            </div>
+          </div>
+          <ul class="queue-list" id="queueList"></ul>
+        </div>
+      </section>
+
+      <!-- Format Picker Modal -->
+      <div class="modal-overlay" id="formatModal" style="display:none" onclick="closeFormatModal(event)">
+        <div class="modal" id="formatModalBox">
+          <div class="modal-header">
+            <h2>Choose output format</h2>
+            <button class="modal-close" onclick="closeFormatModal()">
+              <svg viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+            </button>
+          </div>
+          <div class="modal-search">
+            <svg viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27A6.47 6.47 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
+            <input type="text" placeholder="Search format…" id="modalSearchInput" oninput="filterModalFormats(this.value)">
+          </div>
+          <div class="modal-cats" id="modalCats"></div>
+          <div class="modal-formats" id="modalFormats"></div>
+        </div>
+      </div>
+
+      <!-- Results Section -->
+      <section class="results-section" id="resultsSection" style="display:none">
+        <div class="results-header">
+          <h2>Converted Files</h2>
+          <button class="results-clear" onclick="clearResults()">Clear</button>
+        </div>
+        <ul class="results-list" id="resultsList"></ul>
+      </section>
+
+      <!-- Features Section -->
+      <section class="features-section" id="featuresSection">
+        <div class="section-header">
+          <p class="section-eyebrow">Why ConvertX?</p>
+          <h2>Everything you need,<br>nothing you don't.</h2>
+        </div>
+        <div class="features-grid">
+          <div class="feature-card">
+            <div class="feature-icon" style="--c:#7F77DD">
+              <svg viewBox="0 0 24 24"><path d="M12,17A2,2 0 0,0 14,15C14,13.89 13.1,13 12,13A2,2 0 0,0 10,15A2,2 0 0,0 12,17M18,8A2,2 0 0,1 20,10V20A2,2 0 0,1 18,22H6A2,2 0 0,1 4,20V10C4,8.89 4.9,8 6,8H7V6A5,5 0 0,1 12,1A5,5 0 0,1 17,6V8H18M12,3A3,3 0 0,0 9,6V8H15V6A3,3 0 0,0 12,3Z"/></svg>
+            </div>
+            <h3>100% Private</h3>
+            <p>All conversions happen in your browser. Your files never leave your device — no server, no upload.</p>
+          </div>
+          <div class="feature-card">
+            <div class="feature-icon" style="--c:#1D9E75">
+              <svg viewBox="0 0 24 24"><path d="M12,16L19.36,10.27L21,9L12,2L3,9L4.63,10.27M12,18.54L4.62,12.81L3,14.07L12,21.07L21,14.07L19.37,12.8L12,18.54Z"/></svg>
+            </div>
+            <h3>255+ Formats</h3>
+            <p>Images, PDF, Word, Excel, video, audio, archives, e-books, 3D models and more. One tool for everything.</p>
+          </div>
+          <div class="feature-card">
+            <div class="feature-icon" style="--c:#E06C75">
+              <svg viewBox="0 0 24 24"><path d="M4,4H10V10H4V4M14,4H20V10H14V4M4,14H10V20H4V14M14,14H20V20H14V14Z"/></svg>
+            </div>
+            <h3>Batch Convert</h3>
+            <p>Drop 1 or 100 files at once. They convert in parallel — a failure never stops the rest.</p>
+          </div>
+          <div class="feature-card">
+            <div class="feature-icon" style="--c:#E5C07B">
+              <svg viewBox="0 0 24 24"><path d="M12,2A10,10 0 0,1 22,12A10,10 0 0,1 12,22A10,10 0 0,1 2,12A10,10 0 0,1 12,2M12,4A8,8 0 0,0 4,12A8,8 0 0,0 12,20A8,8 0 0,0 20,12A8,8 0 0,0 12,4M12,9A3,3 0 0,1 15,12A3,3 0 0,1 12,15A3,3 0 0,1 9,12A3,3 0 0,1 12,9Z"/></svg>
+            </div>
+            <h3>Donut Picker</h3>
+            <p>Drag a file and a donut of compatible formats appears. Just hover and drop on the format you want.</p>
+          </div>
+          <div class="feature-card">
+            <div class="feature-icon" style="--c:#56B6C2">
+              <svg viewBox="0 0 24 24"><path d="M5,20H19V18H5M19,9H15V3H9V9H5L12,16L19,9Z"/></svg>
+            </div>
+            <h3>Instant Download</h3>
+            <p>Converted files are ready in seconds and downloaded automatically to your device.</p>
+          </div>
+          <div class="feature-card">
+            <div class="feature-icon" style="--c:#C678DD">
+              <svg viewBox="0 0 24 24"><path d="M14.6,16.6L19.2,12L14.6,7.4L16,6L22,12L16,18L14.6,16.6M9.4,16.6L4.8,12L9.4,7.4L8,6L2,12L8,18L9.4,16.6Z"/></svg>
+            </div>
+            <h3>Free & Open Source</h3>
+            <p>No ads, no watermarks, no account required. MIT licensed and fully open source.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- How it Works -->
+      <section class="how-section" id="howSection">
+        <div class="section-header">
+          <p class="section-eyebrow">How it works</p>
+          <h2>Convert files in <span class="gradient-text">3 steps</span></h2>
+        </div>
+        <ol class="steps-list">
+          <li class="step-item">
+            <div class="step-number">1</div>
+            <div class="step-body">
+              <h3>Drop your files</h3>
+              <p>Drag files from your desktop into the drop zone, or click "browse files" to pick them from your device.</p>
+            </div>
+          </li>
+          <li class="step-item">
+            <div class="step-number">2</div>
+            <div class="step-body">
+              <h3>Pick a format</h3>
+              <p>A donut of compatible formats appears. Hover on your target format and release — or use the format picker.</p>
+            </div>
+          </li>
+          <li class="step-item">
+            <div class="step-number">3</div>
+            <div class="step-body">
+              <h3>Done, download it</h3>
+              <p>Conversion runs instantly in your browser. Your file is downloaded automatically — next to the originals.</p>
+            </div>
+          </li>
+        </ol>
+      </section>
+
+      <!-- Formats Showcase -->
+      <section class="formats-section" id="formatsSection">
+        <div class="section-header">
+          <p class="section-eyebrow">Supported formats</p>
+          <h2>255 formats in 8 categories</h2>
+        </div>
+        <div class="marquee-wrap">
+          <div class="marquee-track-wrap">
+            <div class="marquee marquee-fwd">
+              <div class="marquee-inner" id="marquee1"></div>
+              <div class="marquee-inner" id="marquee1b" aria-hidden="true"></div>
+            </div>
+          </div>
+          <div class="marquee-track-wrap">
+            <div class="marquee marquee-rev">
+              <div class="marquee-inner" id="marquee2"></div>
+              <div class="marquee-inner" id="marquee2b" aria-hidden="true"></div>
+            </div>
+          </div>
+        </div>
+        <div class="format-cats-grid" id="formatCatsGrid"></div>
+      </section>
+
+      <!-- FAQ -->
+      <section class="faq-section" id="faqSection">
+        <div class="section-header">
+          <p class="section-eyebrow">FAQ</p>
+          <h2>Common questions</h2>
+        </div>
+        <div class="faq-list" id="faqList"></div>
+      </section>
+
+      <!-- Footer -->
+      <footer class="footer">
+        <div class="footer-brand">
+          <svg viewBox="0 0 48 48" fill="none" class="footer-logo" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="24" cy="24" r="22" stroke="url(#flg1)" stroke-width="4"/>
+            <path d="M24 8 L36 24 L24 40 L12 24 Z" fill="url(#flg2)"/>
+            <circle cx="24" cy="24" r="8" fill="var(--bg)"/>
+            <defs>
+              <linearGradient id="flg1" x1="2" y1="2" x2="46" y2="46" gradientUnits="userSpaceOnUse">
+                <stop stop-color="#7F77DD"/><stop offset="0.5" stop-color="#1D9E75"/><stop offset="1" stop-color="#7F77DD"/>
+              </linearGradient>
+              <linearGradient id="flg2" x1="12" y1="8" x2="36" y2="40" gradientUnits="userSpaceOnUse">
+                <stop stop-color="#7F77DD"/><stop offset="1" stop-color="#1D9E75"/>
+              </linearGradient>
+            </defs>
+          </svg>
+          <span>ConvertX</span>
+        </div>
+        <p class="footer-copy">© 2026 ConvertX. Free & Open Source. MIT License.</p>
+        <p class="footer-note">All conversions run in your browser. No files are uploaded to any server.</p>
+      </footer>
+
+    </main>
+  </div>
+
+  <!-- Toast Notification -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <!-- History Panel -->
+  <div class="history-panel" id="historyPanel">
+    <div class="history-header">
+      <h3>Conversion History</h3>
+      <button onclick="toggleHistory()">
+        <svg viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+      </button>
+    </div>
+    <ul class="history-list" id="historyList">
+      <li class="history-empty">No conversions yet.</li>
+    </ul>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
