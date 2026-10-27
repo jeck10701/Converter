@@ -145,7 +145,7 @@ function buildMenu() {
    IPC Handlers for File Conversions
    ============================================= */
 
-// Image Conversion Handler (Sharp)
+// Image Conversion Handler (Sharp Native Engine)
 ipcMain.handle('convert-image', async (event, { inputPath, outputPath, targetFormat }) => {
   try {
     let format = targetFormat.toLowerCase().replace('.', '');
@@ -164,35 +164,13 @@ ipcMain.handle('convert-image', async (event, { inputPath, outputPath, targetFor
   }
 });
 
-// PDF Conversion Handler (PDFjs Pure JS Page Render)
+// PDF Conversion Handler Placeholder
 ipcMain.handle('convert-pdf', async (event, { inputPath, outputPath, targetFormat }) => {
   try {
-    const pdfjsLib = require('pdfjs-dist/legacy/build/pdf.js');
-    const data = new Uint8Array(fs.readFileSync(inputPath));
-    const loadingTask = pdfjsLib.getDocument({ data });
-    const pdfDocument = await loadingTask.promise;
-
-    // Kunin ang Unang Pahina
-    const page = await pdfDocument.getPage(1);
-    const viewport = page.getViewport({ scale: 1.5 });
-
-    // lumikha ng buffer gamit ang SVGs/Sharp render kung walang native canvas module
-    let format = (targetFormat || 'png').toLowerCase().replace('.', '');
-    if (format === 'jpg') format = 'jpeg';
-
-    // Gumawa ng basic image representation sa file path
-    await sharp({
-      create: {
-        width: Math.round(viewport.width),
-        height: Math.round(viewport.height),
-        channels: 4,
-        background: { r: 255, g: 255, b: 255, alpha: 1 }
-      }
-    })
-    .toFormat(format)
-    .toFile(outputPath);
-
-    return { success: true, outputPath };
+    return { 
+      success: false, 
+      error: 'PDF and Document rendering require additional desktop dependencies in v1.0.0.' 
+    };
   } catch (error) {
     console.error('PDF Processing Error:', error);
     return { success: false, error: error.message };

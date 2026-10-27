@@ -60,6 +60,7 @@
     "electron-builder": "^25.0.0"
   },
   "dependencies": {
+    "docx-pdf": "^0.0.1",
     "pdfjs-dist": "^6.4.299",
     "sharp": "^0.35.5"
   }
